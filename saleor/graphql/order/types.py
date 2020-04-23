@@ -6,10 +6,10 @@ from graphql_jwt.exceptions import PermissionDenied
 
 from ...core.permissions import AccountPermissions, OrderPermissions
 from ...core.taxes import display_gross_prices
-from ...plugins.manager import get_plugins_manager
 from ...order import OrderStatus, models
 from ...order.models import FulfillmentStatus
 from ...order.utils import get_order_country, get_valid_shipping_methods_for_order
+from ...plugins.manager import get_plugins_manager
 from ...product.templatetags.product_images import get_product_image_thumbnail
 from ..account.types import User
 from ..core.connection import CountableDjangoObjectType
@@ -22,6 +22,7 @@ from ..meta.types import ObjectWithMetadata
 from ..payment.types import OrderAction, Payment, PaymentChargeStatusEnum
 from ..product.types import ProductVariant
 from ..shipping.types import ShippingMethod
+from ..warehouse.types import Warehouse
 from .enums import OrderEventsEmailsEnum, OrderEventsEnum
 from .utils import validate_draft_order
 
@@ -176,6 +177,11 @@ class Fulfillment(CountableDjangoObjectType):
         model_field="lines",
     )
     status_display = graphene.String(description="User-friendly fulfillment status.")
+    warehouse = graphene.Field(
+        Warehouse,
+        required=False,
+        description=("Warehouse from fulfillment was fulfilled."),
+    )
 
     class Meta:
         description = "Represents order fulfillment."
@@ -196,6 +202,11 @@ class Fulfillment(CountableDjangoObjectType):
     @staticmethod
     def resolve_status_display(root: models.Fulfillment, _info):
         return root.get_status_display()
+
+    @staticmethod
+    def resolve_warehouse(root: models.Fulfillment, _info):
+        line = root.lines.first()
+        return line.stock.warehouse if line and line.stock else None
 
     @staticmethod
     @permission_required(OrderPermissions.MANAGE_ORDERS)
