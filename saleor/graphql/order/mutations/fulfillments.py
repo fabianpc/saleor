@@ -45,7 +45,9 @@ class FulfillmentUpdateTrackingInput(graphene.InputObjectType):
 
 
 class FulfillmentCancelInput(graphene.InputObjectType):
-    restock = graphene.Boolean(description="Whether item lines are restocked.")
+    warehouse_id = graphene.ID(
+        description="ID of warehouse where items will be restock.", required=True
+    )
 
 
 class FulfillmentClearMeta(ClearMetaBaseMutation):
@@ -237,7 +239,10 @@ class FulfillmentCancel(BaseMutation):
 
     @classmethod
     def perform_mutation(cls, _root, info, **data):
-        restock = data.get("input").get("restock")
+        warehouse_id = data.get("input").get("warehouse_id")
+        warehouse = cls.get_node_or_error(
+            info, warehouse_id, only_type="Warehouse", field="warehouse_id"
+        )
         fulfillment = cls.get_node_or_error(info, data.get("id"), only_type=Fulfillment)
 
         if not fulfillment.can_edit():
@@ -251,5 +256,5 @@ class FulfillmentCancel(BaseMutation):
             )
 
         order = fulfillment.order
-        cancel_fulfillment(fulfillment, info.context.user, restock)
+        cancel_fulfillment(fulfillment, info.context.user, warehouse)
         return FulfillmentCancel(fulfillment=fulfillment, order=order)

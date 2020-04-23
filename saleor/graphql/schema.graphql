@@ -1656,7 +1656,7 @@ type FulfillmentCancel {
 }
 
 input FulfillmentCancelInput {
-  restock: Boolean
+  warehouseId: ID!
 }
 
 type FulfillmentClearMeta {
